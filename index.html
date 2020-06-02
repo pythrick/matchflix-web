@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="utf-8">
+  <title>Matchflix</title>
+  <link rel="shortcut icon" href="./static/images/favicon.ico">
+  <link rel="stylesheet" href="./static/css/home.css">
+  <link rel="shortcut icon" href="./static/images/favicon.ico">
+  <link rel="stylesheet" href="./static/css/template.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.no-icons.min.css"
+    rel="stylesheet">
+  <link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
+  <script src="https://use.fontawesome.com/3fa36ae73c.js"></script>
+</head>
+
+<body>
+  <section id="app">
+    <div class="container master" v-if="!acabou">
+      <div>
+        <button type="button" class="button downvote" v-on:click="getAnswer('LEFT')">
+          <i class="fa fa-times fa-3x"></i>
+        </button>
+      </div>
+
+      <div class="movie-card">
+        <img :src="currentMovie.cover" :alt="currentMovie.title" :title="currentMovie.title">
+        <div class="text">
+          <h4><b>{{currentMovie.title}}</b></h4>
+          <hr>
+          <p>{{currentMovie.description}}</p>
+        </div>
+      </div>
+
+      <div>
+        <button class="button heart" v-on:click="getAnswer('RIGHT')">
+          <i class="fa fa-heart fa-2x"></i>
+        </button>
+      </div>
+    </div>
+    <div v-if="acabou && !parabens">
+      <h1>Trago o amor da sua vida em até 20 minutos, ou devolvemos seus clicks, digite seu email, por favor</h1>
+      <input type="email" placeholder="Digite seu e-mail" v-model="email">
+      <button type="button" v-on:click="sendAnswers()">Enviar</button>
+    </div>
+    <div v-if="parabens">
+      <h1>Parabéns, estamos trabalhando para encontrar o amor da sua vida.</h1>
+      <h2>Enviaremos o resultado para seu e-mail.</h2>
+    </div>
+
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    new Vue({
+      el: "#app",
+      data: {
+        currentMovie: "",
+        answers: [],
+        movieIndex: 0,
+        acabou: false,
+        parabens: false,
+        email: ""
+      },
+      async mounted() {
+        const resp = await axios.get('http://127.0.0.1:8000/movies')
+        this.movies = resp.data
+        this.currentMovie = this.movies[this.movieIndex]
+        console.log(this.currentMovie)
+        // this.title = resp.data.title
+        // this.description = resp.data.description
+        // this.paragraph = resp.data.paragraph
+
+        // const urlParams = new URLSearchParams(location.search);
+        // const urlMinutes = urlParams.get("minutes");
+        // this.minutes = Number(urlMinutes) || 10;
+        // setInterval(this.countDown, 1000);
+      },
+      computed: {
+        message: function () {
+          const urlParams = new URLSearchParams(location.search);
+          const action = urlParams.get("action");
+          switch (action) {
+            case "be-right-back":
+              return "Volto em instantes..."
+            case "starting":
+              return "A live já vai começar..."
+            case "ending":
+              return "A live está terminando..."
+            default:
+              return "Volto em instantes..."
+          }
+        }
+      },
+      methods: {
+        getAnswer: function (action) {
+          this.answers.push({
+            "movie_id": this.currentMovie.id,
+            "action": action
+          })
+          this.movieIndex++
+          this.currentMovie = this.movies[this.movieIndex]
+          if (this.movieIndex == this.movies.length) {
+            this.acabou = true
+          }
+          console.log(this.answers)
+        },
+        sendAnswers: async function () {
+          const resp = await axios.post(
+            'http://localhost:8000/user-movies', {
+            email: this.email,
+            answers: this.answers
+          })
+          if (resp.status == 201) {
+            this.parabens = true
+          }
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>
